@@ -1,12 +1,14 @@
-<x-app-layout>
-    <x-slot name="header">
+@extends('layouts.app')
+
+@section('content')
+    <div class="flex items-center justify-between mb-6">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ __('Production Activity Monitoring') }}
         </h2>
-    </x-slot>
+    </div>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto space-y-6">
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
@@ -64,33 +66,35 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const ctx = document.getElementById('activityChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Sparepart Out',
-                    data: [12, 19, 3, 5, 2, 3, 9],
-                    borderColor: 'rgb(239, 68, 68)',
-                    tension: 0.3,
-                    fill: true,
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)'
-                }, {
-                    label: 'Sparepart In',
-                    data: [10, 15, 8, 12, 7, 10, 14],
-                    borderColor: 'rgb(34, 197, 94)',
-                    tension: 0.3,
-                    fill: true,
-                    backgroundColor: 'rgba(34, 197, 94, 0.1)'
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' }
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Sparepart Out',
+                        data: [12, 19, 3, 5, 2, 3, 9],
+                        borderColor: 'rgb(239, 68, 68)',
+                        tension: 0.3,
+                        fill: true,
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                    }, {
+                        label: 'Sparepart In',
+                        data: [10, 15, 8, 12, 7, 10, 14],
+                        borderColor: 'rgb(34, 197, 94)',
+                        tension: 0.3,
+                        fill: true,
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
                 }
-            }
+            });
         });
     </script>
-</x-app-layout>
+@endsection

@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
-            $table->string('nik')->unique()->nullable(); // Tambahan untuk traceability
-            $table->string('role')->default('admin'); // Tambahan untuk level akses (admin, leader, operator)
+            $table->string('nik')->unique(); // Wajib isi untuk login
+            $table->string('email')->unique()->nullable(); // Dibikin nullable biar gak wajib pake gmail
+            $table->string('role')->default('user'); // Default ke user, bisa diganti admin/leader
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

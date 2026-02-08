@@ -13,9 +13,8 @@ return new class extends Migration
     {
         Schema::create('spareparts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('line_id')->constrained()->onDelete('cascade');
+            // Kolom line_id dan sap_code sudah dihapus dari sini
             $table->string('part_name');
-            $table->string('sap_code')->unique();
             $table->integer('min_stock')->default(5);
             $table->timestamps();
         });

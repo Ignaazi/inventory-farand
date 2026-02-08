@@ -53,7 +53,7 @@
             </header>
 
             <main class="flex-1 overflow-x-hidden overflow-y-auto p-6 bg-gray-50">
-                {{ $slot }}
+                @yield('content')
             </main>
         </div>
     </div>

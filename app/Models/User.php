@@ -19,9 +19,10 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-        'email',
+        'nik',      // Tambahkan NIK di sini
+        'email',    // Tetap ada tapi sekarang nullable di database
         'password',
-        'role',
+        'role',     // Untuk membedakan Admin, Leader, dan Operator
     ];
 
     /**

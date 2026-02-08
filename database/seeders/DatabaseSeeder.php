@@ -3,23 +3,31 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Membuat akun Admin default
+        User::create([
+            'name'     => 'Super Admin',
+            'nik'      => 'admin', // NIK untuk login
+            'email'    => 'admin@sparepart.sys', // Tetap isi buat formalitas
+            'role'     => 'admin',
+            'password' => Hash::make('admin123'), // Password login
+        ]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Opsional: Tambah satu akun Operator buat ngetes beda Role
+        User::create([
+            'name'     => 'Operator Produksi',
+            'nik'      => 'user',
+            'role'     => 'operator',
+            'password' => Hash::make('user123'),
         ]);
     }
 }

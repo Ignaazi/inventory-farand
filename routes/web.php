@@ -19,15 +19,21 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // 2. User Management Routes (Wajib Ada)
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    // 2. User Management Routes
+    Route::resource('users', UserController::class);
     Route::patch('/users/{user}/role', [UserController::class, 'updateRole'])->name('users.update-role');
 
     // 3. Inventory & Sparepart Routes
     Route::get('/spareparts', [SparepartController::class, 'index'])->name('spareparts.index');
     Route::post('/spareparts', [SparepartController::class, 'store'])->name('spareparts.store');
-    Route::post('/lines', [SparepartController::class, 'storeLine'])->name('lines.store');
+    
+    // TAMBAHKAN BARIS INI UNTUK EDIT/UPDATE
+    Route::put('/spareparts/{id}', [SparepartController::class, 'update'])->name('spareparts.update');
+    
     Route::delete('/spareparts/{id}', [SparepartController::class, 'destroy'])->name('spareparts.destroy');
+
+    // Route lines bisa dihapus kalau memang sudah tidak pakai lines sama sekali
+    Route::post('/lines', [SparepartController::class, 'storeLine'])->name('lines.store');
 });
 
 require __DIR__.'/auth.php';
