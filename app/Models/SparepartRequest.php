@@ -10,6 +10,14 @@ class SparepartRequest extends Model
         'nik', 'nama', 'sparepart_id', 'qty', 'remark', 'type', 'status', 'user_id', 'approved_at'
     ];
 
+    /**
+     * Casting kolom approved_at agar Laravel mengenalinya sebagai objek Carbon.
+     * Ini krusial supaya fungsi ->format() di Blade tidak error.
+     */
+    protected $casts = [
+        'approved_at' => 'datetime',
+    ];
+
     // Relasi untuk mengambil nama sparepart dari tabel stock
     public function sparepart()
     {

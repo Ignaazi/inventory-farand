@@ -3,8 +3,9 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SparepartController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\SparepartRequestController; // Pastikan nanti buat controller ini
+use App\Http\Controllers\SparepartRequestController; 
 use Illuminate\Support\Facades\Route;
+use App\Models\SparepartRequest; // Import Model untuk API stats
 
 Route::get('/', function () {
     return view('welcome');
@@ -31,7 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/spareparts/{id}', [SparepartController::class, 'update'])->name('spareparts.update');
     Route::delete('/spareparts/{id}', [SparepartController::class, 'destroy'])->name('spareparts.destroy');
 
-    // 4. Request Sparepart Routes
+    // 4. Request Sparepart Routes (Untuk User Biasa)
     Route::prefix('requests')->group(function () {
         Route::get('/in', [SparepartRequestController::class, 'createIn'])->name('requests.in');
         Route::get('/out', [SparepartRequestController::class, 'createOut'])->name('requests.out');
@@ -39,19 +40,34 @@ Route::middleware('auth')->group(function () {
         Route::get('/history', [SparepartRequestController::class, 'history'])->name('requests.history');
     });
 
-    // 5. Approval Sparepart Routes
+    // 5. Approval Sparepart Routes (Untuk Admin/Approver)
     Route::prefix('approvals')->group(function () {
         Route::get('/in', [SparepartRequestController::class, 'indexIn'])->name('approvals.in');
         Route::get('/out', [SparepartRequestController::class, 'indexOut'])->name('approvals.out');
+        
+        // --- ADDED: Route untuk melihat History yang sudah di Approve/Reject ---
+        Route::get('/history', [SparepartRequestController::class, 'approvalHistory'])->name('approvals.history');
+        
         Route::post('/{id}/process', [SparepartRequestController::class, 'process'])->name('approvals.process');
     });
 
-    // 6. Cleaning & Monitoring (Placeholder for next step)
+    // 6. Cleaning & Monitoring
     Route::get('/cleaning', function() { return view('cleaning.index'); })->name('cleaning.index');
     Route::get('/monitoring', function() { return view('monitoring.index'); })->name('monitoring.index');
 
-    // Route lines (Opsional/Legacy)
+    // Route lines
     Route::post('/lines', [SparepartController::class, 'storeLine'])->name('lines.store');
+
+    // --- API UNTUK INBOX SIDEBAR REALTIME ---
+Route::get('/api/sidebar-stats', function () {
+    // Pastikan status 'pending' atau 'waiting_approval' sesuai dengan yang ada di database kamu
+    return [
+        'reqIn'  => \App\Models\SparepartRequest::where('type', 'in')->where('status', 'pending')->count(),
+        'reqOut' => \App\Models\SparepartRequest::where('type', 'out')->where('status', 'pending')->count(),
+        'appIn'  => \App\Models\SparepartRequest::where('type', 'in')->where('status', 'pending')->count(), 
+        'appOut' => \App\Models\SparepartRequest::where('type', 'out')->where('status', 'pending')->count(),
+    ];
+});
 });
 
 require __DIR__.'/auth.php';

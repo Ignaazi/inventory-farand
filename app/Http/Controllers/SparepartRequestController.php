@@ -11,11 +11,11 @@ use Illuminate\Support\Facades\DB;
 
 class SparepartRequestController extends Controller
 {
-    /** --- REQUEST SECTION --- **/
+    /** --- REQUEST SECTION (USER) --- **/
 
     public function createIn()
     {
-        $spareparts = Sparepart::all(); // Ambil jenis sparepart untuk dropdown
+        $spareparts = Sparepart::all();
         $type = 'in';
         return view('requests.form', compact('spareparts', 'type'));
     }
@@ -49,38 +49,89 @@ class SparepartRequestController extends Controller
             'status'       => 'pending',
         ]);
 
-        return redirect()->route('requests.history')->with('success', 'Permintaan berhasil dikirim dan menunggu approval.');
+        return redirect()->route('requests.history')->with('success', 'Permintaan berhasil dikirim.');
     }
 
-    public function history()
+    public function history(Request $request)
     {
-        $history = SparepartRequest::with('sparepart')->latest()->get();
+        $query = SparepartRequest::with('sparepart');
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'LIKE', "%{$search}%")
+                  ->orWhere('nik', 'LIKE', "%{$search}%")
+                  ->orWhereHas('sparepart', function($sq) use ($search) {
+                      $sq->where('part_name', 'LIKE', "%{$search}%")
+                        ->orWhere('sap_code', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        $history = $query->latest()->paginate(20);
         return view('requests.history', compact('history'));
     }
 
 
-    /** --- APPROVAL SECTION --- **/
+    /** --- APPROVAL SECTION (ADMIN) --- **/
 
-    public function indexIn()
+    public function indexIn(Request $request)
     {
-        $requests = SparepartRequest::with('sparepart')
-                    ->where('type', 'in')
-                    ->where('status', 'pending')
-                    ->get();
-        
-        $type = 'in'; // Definisi variabel agar aman di compact()
-        return view('approvals.index', compact('requests', 'type'));
+        $type = 'in';
+        $requests = $this->getPendingRequests($request, $type);
+        return view('approvals.approval-list', compact('requests', 'type'));
     }
 
-    public function indexOut()
+    public function indexOut(Request $request)
     {
-        $requests = SparepartRequest::with('sparepart')
-                    ->where('type', 'out')
-                    ->where('status', 'pending')
-                    ->get();
+        $type = 'out';
+        $requests = $this->getPendingRequests($request, $type);
+        return view('approvals.approval-list', compact('requests', 'type'));
+    }
 
-        $type = 'out'; // Definisi variabel agar aman di compact()
-        return view('approvals.index', compact('requests', 'type'));
+    public function approvalHistory(Request $request)
+    {
+        $query = SparepartRequest::with('sparepart')
+                    ->whereIn('status', ['approved', 'rejected']);
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'LIKE', "%{$search}%")
+                  ->orWhere('nik', 'LIKE', "%{$search}%")
+                  ->orWhereHas('sparepart', function($sq) use ($search) {
+                      $sq->where('part_name', 'LIKE', "%{$search}%")
+                        ->orWhere('sap_code', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        $requests = $query->latest()->paginate(20);
+        $type = 'History'; 
+        $isHistory = true; 
+
+        return view('approvals.approval-list', compact('requests', 'type', 'isHistory'));
+    }
+
+    private function getPendingRequests(Request $request, $type)
+    {
+        $query = SparepartRequest::with('sparepart')
+                    ->where('type', $type)
+                    ->where('status', 'pending');
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'LIKE', "%{$search}%")
+                  ->orWhere('nik', 'LIKE', "%{$search}%")
+                  ->orWhereHas('sparepart', function($sq) use ($search) {
+                      $sq->where('part_name', 'LIKE', "%{$search}%")
+                        ->orWhere('sap_code', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        return $query->latest()->paginate(20);
     }
 
     public function process(Request $request, $id)
@@ -92,7 +143,6 @@ class SparepartRequestController extends Controller
                 DB::beginTransaction();
 
                 if ($req->type == 'out') {
-                    // Logic Kurangi Stok
                     $sparepart = Sparepart::findOrFail($req->sparepart_id);
                     $availableItems = $sparepart->items()->where('status', 'available');
 
@@ -100,11 +150,9 @@ class SparepartRequestController extends Controller
                         return back()->withErrors(['msg' => 'Gagal: Stok aktual tidak mencukupi!']);
                     }
 
-                    // Hapus item sejumlah qty yang diminta
                     $availableItems->limit($req->qty)->delete();
                 } 
                 else {
-                    // Logic Tambah Stok (In)
                     for ($i = 0; $i < $req->qty; $i++) {
                         SparepartItem::create([
                             'sparepart_id'  => $req->sparepart_id,
@@ -120,16 +168,15 @@ class SparepartRequestController extends Controller
                 ]);
 
                 DB::commit();
-                return back()->with('success', 'Request berhasil disetujui dan stok telah diperbarui.');
+                return back()->with('success', 'Request Approved & Stock Updated.');
 
             } catch (\Exception $e) {
                 DB::rollBack();
-                return back()->withErrors(['msg' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+                return back()->withErrors(['msg' => 'Error: ' . $e->getMessage()]);
             }
         } 
         
-        // Jika Rejected
-        $req->update(['status' => 'rejected']);
-        return back()->with('success', 'Request telah ditolak.');
+        $req->update(['status' => 'rejected', 'approved_at' => now()]);
+        return back()->with('success', 'Request Rejected.');
     }
 }
