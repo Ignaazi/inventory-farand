@@ -5,15 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Sparepart;
 use App\Models\SparepartItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SparepartController extends Controller
 {
-    /**
-     * Menampilkan daftar sparepart.
-     */
     public function index()
     {
-        // Ambil data sparepart dengan hitungan stok available dari relasi items
         $spareparts = Sparepart::withCount(['items' => function($query) {
             $query->where('status', 'available');
         }])->latest()->get();
@@ -21,31 +18,28 @@ class SparepartController extends Controller
         return view('spareparts.index', compact('spareparts'));
     }
 
-    /**
-     * Menyimpan Sparepart Baru.
-     */
     public function store(Request $request)
     {
         $request->validate([
             'part_name'     => 'required|string|max:255',
             'min_stock'     => 'required|integer|min:0',
-            'quantity'      => 'nullable|integer|min:1', // Input quantity manual
+            'quantity'      => 'nullable|integer|min:0',
             'serial_number' => 'nullable|string|max:255',
         ]);
 
         try {
+            DB::beginTransaction();
+
             $sparepart = Sparepart::create([
                 'part_name' => $request->part_name,
                 'min_stock' => $request->min_stock,
             ]);
 
-            // Ambil jumlah quantity, default 1 jika tidak diisi
-            $qty = $request->quantity ?? 1;
+            $qty = $request->quantity ?? 0;
 
             for ($i = 0; $i < $qty; $i++) {
                 SparepartItem::create([
                     'sparepart_id'  => $sparepart->id,
-                    // Baris pertama pakai SN inputan (jika ada), sisanya generate otomatis
                     'serial_number' => ($i == 0 && $request->serial_number) 
                                         ? $request->serial_number 
                                         : 'SN-' . strtoupper(uniqid()) . '-' . ($i + 1),
@@ -53,54 +47,68 @@ class SparepartController extends Controller
                 ]);
             }
 
-            return back()->with('success', "Data Sparepart Berhasil Masuk dengan $qty unit!");
+            DB::commit();
+            return back()->with('success', "Sparepart baru berhasil didaftarkan dengan stok $qty unit!");
 
         } catch (\Exception $e) {
+            DB::rollBack();
             return back()->withErrors(['msg' => 'Gagal simpan: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Update data sparepart (Fitur Edit & Tambah Stok).
+     * Update data & Sinkronisasi Stok Aktual.
      */
     public function update(Request $request, $id)
     {
         $request->validate([
             'part_name' => 'required|string|max:255',
             'min_stock' => 'required|integer|min:0',
-            'quantity'  => 'nullable|integer|min:0', // Untuk tambah stok manual saat edit
+            'quantity'  => 'required|integer|min:0', // Sekarang wajib untuk sinkronisasi stok
         ]);
 
         try {
+            DB::beginTransaction();
+
             $sparepart = Sparepart::findOrFail($id);
             $sparepart->update([
                 'part_name' => $request->part_name,
                 'min_stock' => $request->min_stock,
             ]);
 
-            // Jika user mengisi angka di input quantity saat edit, tambahkan stok baru
-            if ($request->quantity > 0) {
-                for ($i = 0; $i < $request->quantity; $i++) {
+            // Hitung stok saat ini (hanya yang statusnya available)
+            $currentStock = $sparepart->items()->where('status', 'available')->count();
+            $targetStock = $request->quantity;
+
+            if ($targetStock > $currentStock) {
+                // Jika input lebih besar, tambahkan selisihnya
+                $diff = $targetStock - $currentStock;
+                for ($i = 0; $i < $diff; $i++) {
                     SparepartItem::create([
                         'sparepart_id'  => $sparepart->id,
-                        'serial_number' => 'SN-' . strtoupper(uniqid()) . '-ADD',
+                        'serial_number' => 'SN-' . strtoupper(uniqid()) . '-UPD',
                         'status'        => 'available',
                     ]);
                 }
-                $msg = "Data diperbarui dan " . $request->quantity . " unit stok ditambahkan!";
-            } else {
-                $msg = "Data Sparepart Berhasil Diperbarui!";
+            } elseif ($targetStock < $currentStock) {
+                // Jika input lebih kecil (misal dari 5 jadi 3), hapus selisihnya
+                $diff = $currentStock - $targetStock;
+                // Hapus item yang 'available' sebanyak selisih tersebut
+                $sparepart->items()
+                    ->where('status', 'available')
+                    ->limit($diff)
+                    ->delete();
             }
 
-            return back()->with('success', $msg);
+            DB::commit();
+            return back()->with('success', "Data dan jumlah stok berhasil disinkronisasi menjadi $targetStock unit!");
+            
         } catch (\Exception $e) {
+            DB::rollBack();
             return back()->withErrors(['msg' => 'Gagal update: ' . $e->getMessage()]);
         }
     }
 
-    /**
-     * Menghapus Sparepart secara total.
-     */
     public function destroy($id)
     {
         try {
@@ -108,7 +116,7 @@ class SparepartController extends Controller
             $sparepart->items()->delete();
             $sparepart->delete();
 
-            return back()->with('success', 'Data Sparepart dan Serial Number Berhasil Dihapus!');
+            return back()->with('success', 'Data Sparepart berhasil dihapus secara permanen!');
         } catch (\Exception $e) {
             return back()->withErrors(['msg' => 'Gagal menghapus: ' . $e->getMessage()]);
         }
