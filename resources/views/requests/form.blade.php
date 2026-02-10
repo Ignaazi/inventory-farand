@@ -136,11 +136,11 @@
 
             <div class="pt-6">
                 <button type="submit" class="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-xl text-xs font-black-custom uppercase tracking-[0.3em] transition-all shadow-xl active:scale-95 flex items-center justify-center gap-4">
-                    Send Request
+                    Send Requestt
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                 </button>
             </div>
-        </form>
+        </form>sz
     </div>
 
     <p class="text-center mt-8 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">
