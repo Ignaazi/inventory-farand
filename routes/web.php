@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\SparepartRequest; // Import Model untuk API stats
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('auth/login');
 });
 
 Route::get('/dashboard', function () {
