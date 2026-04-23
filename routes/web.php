@@ -5,6 +5,7 @@ use App\Http\Controllers\SparepartController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SparepartRequestController; 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MonitoringController;
 use App\Models\SparepartRequest; // Import Model untuk API stats
 
 Route::get('/', function () {
@@ -54,6 +55,9 @@ Route::middleware('auth')->group(function () {
     // 6. Cleaning & Monitoring
     Route::get('/cleaning', function() { return view('cleaning.index'); })->name('cleaning.index');
     Route::get('/monitoring', function() { return view('monitoring.index'); })->name('monitoring.index');
+    
+    //7. Monitoring line
+    Route::get('/monitoring', [MonitoringController::class, 'index'])->name('monitoring.index');
 
     // Route lines
     Route::post('/lines', [SparepartController::class, 'storeLine'])->name('lines.store');
